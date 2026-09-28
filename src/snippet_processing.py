@@ -37,12 +37,33 @@ def strip_boilerplate(code: str) -> str:
     return "\n".join(kept).strip()
 
 
+def split_subtokens(token: str) -> list[str]:
+    """Splits camelCase, PascalCase, and snake_case identifiers into individual sub-tokens.
+    e.g. 'normalizeInput' -> ['normalize', 'input']
+         'preprocessed_data_v2' -> ['preprocessed', 'data', 'v2']
+    """
+    # Split snake_case first
+    parts = token.split("_")
+    subtokens = []
+    for part in parts:
+        if not part:
+            continue
+        # Split camelCase / PascalCase
+        camel_parts = re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\d|\b)|[0-9]+", part)
+        if camel_parts:
+            subtokens.extend(camel_parts)
+        else:
+            subtokens.append(part)
+    return [s.lower() for s in subtokens if len(s) > 1]
+
+
 def extract_identifiers(code: str) -> list[str]:
     tokens = _IDENTIFIER_RE.findall(code)
     keywords = {
         "function", "const", "let", "var", "return", "if", "else", "for",
         "while", "def", "class", "public", "private", "static", "void",
         "int", "string", "bool", "true", "false", "null", "None", "self",
+        "import", "from", "as", "try", "except", "catch", "struct", "namespace",
     }
     out, seen = [], set()
     for t in tokens:
@@ -50,6 +71,12 @@ def extract_identifiers(code: str) -> list[str]:
             continue
         seen.add(t)
         out.append(t)
+
+        # Extract sub-tokens for BM25 matching
+        for sub in split_subtokens(t):
+            if sub not in keywords and sub not in seen:
+                seen.add(sub)
+                out.append(sub)
     return out
 
 

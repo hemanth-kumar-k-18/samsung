@@ -30,7 +30,7 @@ class RetrievalPipeline:
     def retrieve(self, query: str, shortlist_size: int = 100, final_k: int = 10):
         pq = process_query(query)
         shortlist = self.hybrid.search(
-            pq.all_variants, top_k_each=50, shortlist_size=shortlist_size
+            pq.all_variants, top_k_each=50, shortlist_size=shortlist_size, intent=pq.intent
         )
         if self.reranker is None:
             return shortlist[:final_k]
